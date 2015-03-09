@@ -1,0 +1,94 @@
+#!/bin/bash
+
+if [ ! -e /var/lib/ldap/docker_bootstrapped ]; then
+	echo "configuring slapd for first run"
+
+	cat <<EOF | debconf-set-selections
+slapd slapd/dump_database_destdir string /var/backups/slapd-VERSION
+slapd slapd/backend string HDB
+slapd slapd/purge_database boolean true
+slapd slapd/move_old_database boolean true
+slapd slapd/allow_ldap_v2 boolean false
+slapd slapd/no_configuration boolean false
+slapd slapd/dump_database select when needed
+slapd slapd/internal/generated_adminpw password ${LDAP_ROOTPASS}
+slapd slapd/internal/adminpw password ${LDAP_ROOTPASS}
+slapd slapd/password2 password ${LDAP_ROOTPASS}
+slapd slapd/password1 password ${LDAP_ROOTPASS}
+slapd slapd/domain string ${LDAP_DOMAIN}
+slapd shared/organization string ${LDAP_ORGANISATION}
+EOF
+	dpkg-reconfigure -f noninteractive slapd
+
+        cat >> /tmp/mof_config.ldif << EOF
+dn: cn=module,cn=config
+cn: module
+objectClass: olcModuleList
+olcModuleLoad: memberof
+olcModulePath: /usr/lib/ldap
+
+dn: olcOverlay={0}memberof,olcDatabase={1}hdb,cn=config
+objectClass: olcConfig
+objectClass: olcMemberOf
+objectClass: olcOverlayConfig
+objectClass: top
+olcOverlay: memberof
+olcMemberOfDangling: ignore
+olcMemberOfRefInt: TRUE
+olcMemberOfGroupOC: groupOfNames
+olcMemberOfMemberAD: member
+olcMemberOfMemberOfAD: memberOf
+EOF
+
+        cat >> /tmp/mof_refint1.ldif << EOF
+dn: cn=module{1},cn=config
+add: olcmoduleload
+olcmoduleload: refint
+EOF
+
+        cat >> /tmp/mof_refint2.ldif << EOF
+dn: olcOverlay={1}refint,olcDatabase={1}hdb,cn=config
+objectClass: olcConfig
+objectClass: olcOverlayConfig
+objectClass: olcRefintConfig
+objectClass: top
+olcOverlay: {1}refint
+olcRefintAttribute: memberof member manager owner
+EOF
+
+        service slapd start
+
+        ldapadd -Q -Y EXTERNAL -H ldapi:/// -f /tmp/mof_config.ldif
+        ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f /tmp/mof_refint1.ldif
+        ldapadd -Q -Y EXTERNAL -H ldapi:/// -f /tmp/mof_refint2.ldif
+
+        rm /tmp/*.ldif
+        killall slapd
+
+	touch /var/lib/ldap/docker_bootstrapped
+else
+	echo "found already-configured slapd"
+fi
+
+case "$1" in
+	start)
+                supervisord -n
+		exit 0
+		;;
+	*)
+		if [ -x $1 ]; then
+			prog=$1
+			shift 1
+			$prog $@
+		else
+			prog=$(which $1)
+			if [ -n "${prog}" ]; then
+				shift 1
+				$prog $@
+			fi
+		fi
+		exit 1
+		;;
+esac
+
+exit 0
