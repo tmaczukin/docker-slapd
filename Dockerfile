@@ -2,12 +2,10 @@ FROM tmaczukin/debian
 MAINTAINER Tomasz Maczukin "tomasz@maczukin.pl"
 
 # Install OpenLDAP
-RUN apt-get install -y slapd ldap-utils supervisor && apt-get clean
+RUN apt-get install -y slapd ldap-utils && apt-get clean
 
 COPY assets/init /usr/local/sbin/init
 RUN chmod 700 /usr/local/sbin/init && chown root:root /usr/local/sbin/init
-
-COPY assets/slapd.conf /etc/supervisor/conf.d/slapd.conf
 
 ENV LDAP_ROOTPASS root
 ENV LDAP_DOMAIN example.com

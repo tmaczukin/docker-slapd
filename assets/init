@@ -72,8 +72,7 @@ fi
 
 case "$1" in
 	start)
-                supervisord -n
-		exit 0
+                /usr/sbin/slapd -h ldap:/// -F /etc/ldap/slapd.d -d 1
 		;;
 	*)
 		if [ -x $1 ]; then
