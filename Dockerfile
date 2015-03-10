@@ -10,8 +10,8 @@ RUN chmod 700 /usr/local/sbin/init && chown root:root /usr/local/sbin/init
 COPY assets/slapd.conf /etc/supervisor/conf.d/slapd.conf
 
 ENV LDAP_ROOTPASS root
-ENV LDAP_DOMAIN maczukin.pl
-ENV LDAP_ORGANIZATION maczukin.pl
+ENV LDAP_DOMAIN example.com
+ENV LDAP_ORGANIZATION example.com
 
 VOLUME ["/var/lib/ldap"]
 VOLUME ["/etc/ldap/slapd.d"]
