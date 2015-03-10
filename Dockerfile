@@ -11,7 +11,7 @@ COPY assets/slapd.conf /etc/supervisor/conf.d/slapd.conf
 
 ENV LDAP_ROOTPASS root
 ENV LDAP_DOMAIN maczukin.pl
-ENV LDAP_ORGANISATION maczukin.pl
+ENV LDAP_ORGANIZATION maczukin.pl
 
 VOLUME ["/var/lib/ldap"]
 VOLUME ["/etc/ldap/slapd.d"]
